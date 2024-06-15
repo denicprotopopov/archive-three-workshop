@@ -1,6 +1,9 @@
 import * as THREE from "https://cdn.skypack.dev/three@0.132.2"
 import { OrbitControls } from "https://cdn.skypack.dev/three@0.132.2/examples/jsm/controls/OrbitControls.js"
 import { GLTFLoader } from "https://cdn.skypack.dev/three@0.132.2/examples/jsm/loaders/GLTFLoader.js"
+import { EffectComposer } from "https://cdn.skypack.dev/three@0.132.2/examples/jsm/postprocessing/EffectComposer.js";
+import { RenderPass } from "https://cdn.skypack.dev/three@0.132.2/examples/jsm/postprocessing/RenderPass.js";
+import { ShaderPass } from "https://cdn.skypack.dev/three@0.132.2/examples/jsm/postprocessing/ShaderPass.js";
 
 const canvas = document.querySelector('canvas.webgl')
 
@@ -87,7 +90,42 @@ window.addEventListener('resize', () =>{
     camera.aspect = sizes.width / sizes.height
     camera.updateProjectionMatrix()
     renderer.setSize(sizes.width, sizes.height)
+    pixelationPass.uniforms['resolution'].value.set(sizes.width, sizes.height).multiplyScalar(window.devicePixelRatio)
 })
+
+const PixelationShader = {
+    uniforms: {
+        'tDiffuse': { value: null },
+        'resolution': { value: new THREE.Vector2() },
+        'pixelSize': { value: 10 }
+    },
+    vertexShader: `
+        varying vec2 vUv;
+        void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `,
+    fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform vec2 resolution;
+        uniform float pixelSize;
+        varying vec2 vUv;
+        void main() {
+            vec2 dxy = pixelSize / resolution;
+            vec2 coord = dxy * floor(vUv / dxy);
+            gl_FragColor = texture2D(tDiffuse, coord);
+        }
+    `
+};
+
+const composer = new EffectComposer(renderer)
+composer.addPass(new RenderPass(scene, camera))
+
+const pixelationPass = new ShaderPass(PixelationShader)
+pixelationPass.uniforms['resolution'].value = new THREE.Vector2(window.innerWidth, window.innerHeight)
+pixelationPass.uniforms['resolution'].value.multiplyScalar(window.devicePixelRatio)
+composer.addPass(pixelationPass)
 
 const controls = new OrbitControls(camera, renderer.domElement)
 controls.enableDamping = true
@@ -95,7 +133,7 @@ controls.enableDamping = true
 const animate = () => {
     controls.update()
 
-    renderer.render(scene, camera)
+    composer.render()
 
     requestAnimationFrame(animate)
 }
