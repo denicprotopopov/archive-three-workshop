@@ -40,6 +40,32 @@ backWall.position.y = 15
 backWall.receiveShadow = true
 scene.add(backWall)
 
+const sizes = {
+    width: window.innerWidth,
+    height: window.innerHeight
+}
+
+const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height)
+camera.position.z = 30
+camera.position.y = 30
+scene.add(camera)
+
+// create an AudioListener and add it to the camera
+const listener = new THREE.AudioListener();
+camera.add( listener );
+
+// create the PositionalAudio object (passing in the listener)
+const sound = new THREE.PositionalAudio( listener );
+
+// load a sound and set it as the PositionalAudio object's buffer
+const audioLoader = new THREE.AudioLoader();
+audioLoader.load( 'sounds/chair.mp3', function( buffer ) {
+	sound.setBuffer( buffer );
+	sound.setRefDistance( 20 );
+	sound.play();
+});
+
+
 const loader = new GLTFLoader()
 loader.load('objects/chair.glb', (gltf) => {
     gltf.scene.traverse(function (child) {
@@ -51,20 +77,11 @@ loader.load('objects/chair.glb', (gltf) => {
     const model = gltf.scene
     model.position.set(0, 0, 0)
     model.scale.set(2, 2, 2)
+    model.add(sound)
     scene.add(model)
 }, undefined, (error) => {
     console.error(error)
 })
-
-const sizes = {
-    width: window.innerWidth,
-    height: window.innerHeight
-}
-
-const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height)
-camera.position.z = 30
-camera.position.y = 30
-scene.add(camera)
 
 const spotLight = new THREE.SpotLight(0xffffff)
 spotLight.castShadow = true
