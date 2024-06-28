@@ -1,8 +1,12 @@
 import * as THREE from "https://cdn.skypack.dev/three@0.132.2"
 import { OrbitControls } from "https://cdn.skypack.dev/three@0.132.2/examples/jsm/controls/OrbitControls.js"
+import { PointerLockControls } from "https://cdn.skypack.dev/three@0.132.2/examples/jsm/controls/PointerLockControls.js";
 import { GLTFLoader } from "https://cdn.skypack.dev/three@0.132.2/examples/jsm/loaders/GLTFLoader.js"
 
 const canvas = document.querySelector('canvas.webgl')
+const loadingScreen = document.getElementById('loading-screen');
+const beginButtonContainer = document.getElementById('begin-button-container');
+const beginButton = document.getElementById('begin-button');
 
 const scene = new THREE.Scene()
 
@@ -47,7 +51,7 @@ const sizes = {
 
 const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height)
 camera.position.z = 30
-camera.position.y = 30
+camera.position.y = 10
 scene.add(camera)
 
 // create an AudioListener and add it to the camera
@@ -56,15 +60,24 @@ camera.add( listener );
 
 // create the PositionalAudio object (passing in the listener)
 const sound = new THREE.PositionalAudio( listener );
+const ambientSound = new THREE.Audio( listener );
 
 // load a sound and set it as the PositionalAudio object's buffer
 const audioLoader = new THREE.AudioLoader();
 audioLoader.load( 'sounds/chair.mp3', function( buffer ) {
 	sound.setBuffer( buffer );
-	sound.setRefDistance( 20 );
-	sound.play();
+    sound.setLoop( true );
+    sound.setVolume( 2 );
+	sound.setRefDistance( 5 );
+	// sound.play();
 });
 
+const ambientAudioLoader = new THREE.AudioLoader();
+ambientAudioLoader.load( 'sounds/wind.mp3', function( buffer ) {
+	ambientSound.setBuffer( buffer );
+	ambientSound.setLoop( true );
+	ambientSound.setVolume( 0.1 );
+});
 
 const loader = new GLTFLoader()
 loader.load('objects/chair.glb', (gltf) => {
@@ -79,6 +92,7 @@ loader.load('objects/chair.glb', (gltf) => {
     model.scale.set(2, 2, 2)
     model.add(sound)
     scene.add(model)
+    showBeginButton();
 }, undefined, (error) => {
     console.error(error)
 })
@@ -106,15 +120,80 @@ window.addEventListener('resize', () =>{
     renderer.setSize(sizes.width, sizes.height)
 })
 
-const controls = new OrbitControls(camera, renderer.domElement)
+const controls = new PointerLockControls(camera, document.body);
 controls.enableDamping = true
 
+const keys = {
+    forward: false,
+    backward: false,
+    left: false,
+    right: false
+};
+
+document.addEventListener('keydown', (event) => {
+    switch (event.code) {
+        case 'KeyW':
+        case 'ArrowUp':
+            keys.forward = true;
+            break;
+        case 'KeyA':
+        case 'ArrowLeft':
+            keys.left = true;
+            break;
+        case 'KeyS':
+        case 'ArrowDown':
+            keys.backward = true;
+            break;
+        case 'KeyD':
+        case 'ArrowRight':
+            keys.right = true;
+            break;
+    }
+});
+
+document.addEventListener('keyup', (event) => {
+    switch (event.code) {
+        case 'KeyW':
+        case 'ArrowUp':
+            keys.forward = false;
+            break;
+        case 'KeyA':
+        case 'ArrowLeft':
+            keys.left = false;
+            break;
+        case 'KeyS':
+        case 'ArrowDown':
+            keys.backward = false;
+            break;
+        case 'KeyD':
+        case 'ArrowRight':
+            keys.right = false;
+            break;
+    }
+});
+
 const animate = () => {
-    controls.update()
+    if (keys.forward) controls.moveForward(0.1);
+    if (keys.backward) controls.moveForward(-0.1);
+    if (keys.left) controls.moveRight(-0.1);
+    if (keys.right) controls.moveRight(0.1);
 
-    renderer.render(scene, camera)
+    renderer.render(scene, camera);
+    requestAnimationFrame(animate);
+};
 
-    requestAnimationFrame(animate)
-}
+const showBeginButton = () => {
+    loadingScreen.style.display = 'none';
+    beginButtonContainer.style.display = 'flex';
+};
+
+beginButton.addEventListener('click', () => {
+    beginButtonContainer.style.display = 'none';
+    canvas.style.display = 'block';
+    controls.lock();
+    sound.play(); // Start the audio after the user gesture
+    ambientSound.play();
+    animate();
+});
 
 animate()

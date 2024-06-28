@@ -1,7 +1,40 @@
 body, html {
     margin: 0;
+    overflow: hidden;
+    font-family: Arial, sans-serif;
 }
 
 canvas {
-    display:block
+    display: none; /* Hide the canvas until loading is complete */
+}
+
+#loading-screen {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 24px;
+    z-index: 10;
+}
+
+#begin-button-container {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    display: none; /* Hide the button until loading is complete */
+}
+
+#begin-button {
+    padding: 10px 20px;
+    font-size: 18px;
+    cursor: pointer;
 }
